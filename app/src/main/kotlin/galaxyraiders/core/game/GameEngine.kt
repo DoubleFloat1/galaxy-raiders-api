@@ -89,6 +89,10 @@ class GameEngine(
         (first, second) ->
       if (first.impacts(second)) {
         first.collideWith(second, GameEngineConfig.coefficientRestitution)
+
+        if (first.symbol == '^' && second.symbol == '.') {
+          this.field.explodeAsteroid(second as Asteroid)
+        }
       }
     }
   }
