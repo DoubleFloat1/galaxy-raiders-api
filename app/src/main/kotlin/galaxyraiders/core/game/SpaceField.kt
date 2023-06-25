@@ -56,6 +56,10 @@ data class SpaceField(val width: Int, val height: Int, val generator: RandomGene
     this.asteroids.forEach { it.move() }
   }
 
+  fun moveExplosions() {
+    this.explosions.forEach { it.move() }
+  }
+
   fun generateMissile() {
     this.missiles += this.createMissile()
   }
@@ -71,6 +75,13 @@ data class SpaceField(val width: Int, val height: Int, val generator: RandomGene
     }
   }
 
+  fun updateExplosions() {
+    this.explosions.forEach { it.incrementTimer() }
+    this.explosions.filter {
+      !it.isOverTime()
+    }
+  }
+
   fun trimMissiles() {
     this.missiles = this.missiles.filter {
       it.inBoundaries(this.boundaryX, this.boundaryY)
@@ -79,6 +90,12 @@ data class SpaceField(val width: Int, val height: Int, val generator: RandomGene
 
   fun trimAsteroids() {
     this.asteroids = this.asteroids.filter {
+      it.inBoundaries(this.boundaryX, this.boundaryY)
+    }
+  }
+
+  fun trimExplosions() {
+    this.explosions = this.explosions.filter {
       it.inBoundaries(this.boundaryX, this.boundaryY)
     }
   }

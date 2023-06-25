@@ -80,6 +80,7 @@ class GameEngine(
     if (!this.playing) return
     this.handleCollisions()
     this.moveSpaceObjects()
+    this.updateExplosionsTimer()
     this.trimSpaceObjects()
     this.generateAsteroids()
   }
@@ -101,11 +102,17 @@ class GameEngine(
     this.field.moveShip()
     this.field.moveAsteroids()
     this.field.moveMissiles()
+    this.field.moveExplosions()
+  }
+
+  fun updateExplosionsTimer() {
+    this.field.updateExplosions()
   }
 
   fun trimSpaceObjects() {
     this.field.trimAsteroids()
     this.field.trimMissiles()
+    this.field.trimExplosions()
   }
 
   fun generateAsteroids() {
