@@ -6,6 +6,8 @@ import galaxyraiders.ports.ui.Controller
 import galaxyraiders.ports.ui.Controller.PlayerCommand
 import galaxyraiders.ports.ui.Visualizer
 import kotlin.system.measureTimeMillis
+import java.io.File
+import kotlin.math.roundToInt
 
 const val MILLISECONDS_PER_SECOND: Int = 1000
 
@@ -33,9 +35,15 @@ class GameEngine(
     generator = generator
   )
 
+  var scoreboardFile = File("./app/src/main/kotlin/galaxyraiders/core/score/Scoreboard.json")
+  var leaderboardFile = File("./app/src/main/kotlin/galaxyraiders/core/score/Leaderboard.json")
+
   var playing = true
+  var score: Int = 0
 
   fun execute() {
+    //createScoreFiles()
+
     while (true) {
       val duration = measureTimeMillis { this.tick() }
 
@@ -48,6 +56,18 @@ class GameEngine(
   fun execute(maxIterations: Int) {
     repeat(maxIterations) {
       this.tick()
+    }
+  }
+
+  fun createScoreFiles() {
+    val isScoreboardCreated: Boolean = scoreboardFile.createNewFile()
+    val isLeaderboardCreated: Boolean = leaderboardFile.createNewFile()
+
+    if (!isScoreboardCreated) {
+      scoreboardFile.writeText("Test scoreboard\n")
+    }
+    if (!isLeaderboardCreated) {
+      leaderboardFile.writeText("Test leaderboard\n")
     }
   }
 
@@ -80,7 +100,6 @@ class GameEngine(
     if (!this.playing) return
     this.handleCollisions()
     this.moveSpaceObjects()
-    this.updateExplosionsTimer()
     this.trimSpaceObjects()
     this.generateAsteroids()
   }
@@ -92,7 +111,11 @@ class GameEngine(
         first.collideWith(second, GameEngineConfig.coefficientRestitution)
 
         if (first.symbol == '^' && second.symbol == '.') {
-          this.field.explodeAsteroid(second as Asteroid)
+          val asteroid: Asteroid = second as Asteroid
+          this.field.explodeAsteroid(asteroid)
+
+          val doubleScore: Double = 200 * asteroid.mass + 300 * asteroid.velocity.magnitude
+          score += doubleScore.roundToInt()
         }
       }
     }
@@ -103,10 +126,6 @@ class GameEngine(
     this.field.moveAsteroids()
     this.field.moveMissiles()
     this.field.moveExplosions()
-  }
-
-  fun updateExplosionsTimer() {
-    this.field.updateExplosions()
   }
 
   fun trimSpaceObjects() {
