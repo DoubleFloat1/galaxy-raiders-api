@@ -1,0 +1,34 @@
+{
+    "games": [
+        {
+            "date_time": "13/07/2023 22:04:30",
+            "score": 481223,
+            "asteroids_destroyed": 3
+        },
+        {
+            "date_time": "13/07/2023 22:05:43",
+            "score": 0,
+            "asteroids_destroyed": 0
+        },
+        {
+            "date_time": "13/07/2023 22:06:39",
+            "score": 1223460,
+            "asteroids_destroyed": 8
+        },
+        {
+            "date_time": "13/07/2023 22:07:59",
+            "score": 0,
+            "asteroids_destroyed": 0
+        },
+        {
+            "date_time": "13/07/2023 22:08:56",
+            "score": 1022898,
+            "asteroids_destroyed": 6
+        },
+        {
+            "date_time": "13/07/2023 22:10:13",
+            "score": 842525,
+            "asteroids_destroyed": 6
+        }
+    ]
+}

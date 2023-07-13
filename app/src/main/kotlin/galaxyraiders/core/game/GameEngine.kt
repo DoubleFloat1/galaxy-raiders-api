@@ -8,6 +8,9 @@ import galaxyraiders.ports.ui.Visualizer
 import kotlin.system.measureTimeMillis
 import java.io.File
 import kotlin.math.roundToInt
+import java.time.format.DateTimeFormatter
+import java.time.LocalDateTime
+import java.util.Scanner
 
 const val MILLISECONDS_PER_SECOND: Int = 1000
 
@@ -35,14 +38,34 @@ class GameEngine(
     generator = generator
   )
 
-  var scoreboardFile = File("./app/src/main/kotlin/galaxyraiders/core/score/Scoreboard.json")
-  var leaderboardFile = File("./app/src/main/kotlin/galaxyraiders/core/score/Leaderboard.json")
+  // app/src/main/kotlin/galaxyraiders/core/score/
+  var scoreboardFile = File("./src/main/kotlin/galaxyraiders/core/score/Scoreboard.json")
+  var leaderboardFile = File("./src/main/kotlin/galaxyraiders/core/score/Leaderboard.json")
+  var scoreboardFormatBefore: String = ""
+  var scoreboardFormatAfter: String = ""
+  var leaderboardFormatBefore: String = ""
+  var leaderboardFormatAfter: String = ""
 
   var playing = true
+
+  var formattedDate: String = ""
   var score: Int = 0
+  var asteroidsDestroyed: Int = 0
+
+  var leaderboardDate1: String = ""
+  var leaderboardScore1: Int = 0
+  var leaderboardDestroyed1: Int = 0
+  var leaderboardDate2: String = ""
+  var leaderboardScore2: Int = 0
+  var leaderboardDestroyed2: Int = 0
+  var leaderboardDate3: String = ""
+  var leaderboardScore3: Int = 0
+  var leaderboardDestroyed3: Int = 0
+
+  var currentLeaderboardPosition: Int = 4
 
   fun execute() {
-    //createScoreFiles()
+    setupScoreFiles()
 
     while (true) {
       val duration = measureTimeMillis { this.tick() }
@@ -59,16 +82,147 @@ class GameEngine(
     }
   }
 
-  fun createScoreFiles() {
+  fun setupScoreFiles() {
     val isScoreboardCreated: Boolean = scoreboardFile.createNewFile()
     val isLeaderboardCreated: Boolean = leaderboardFile.createNewFile()
 
-    if (!isScoreboardCreated) {
-      scoreboardFile.writeText("Test scoreboard\n")
+    val currentDate = LocalDateTime.now()
+    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")
+    formattedDate = currentDate.format(formatter)
+
+    setupScoreboard(isScoreboardCreated)
+    setupLeaderboard(isLeaderboardCreated)
+  }
+
+  fun setupScoreboard(isNewFile: Boolean) {
+    if (isNewFile) {
+      scoreboardFormatBefore += "{\n    \"games\": [\n"
+      scoreboardFormatAfter += "    ]\n}"
+
+      val scoreboardFormatNow = makeJsonScoreFormat(formattedDate, score, asteroidsDestroyed) + "\n"
+
+      scoreboardFile.writeText(scoreboardFormatBefore + scoreboardFormatNow + scoreboardFormatAfter)
+    } else {
+      val sc = Scanner(scoreboardFile)
+
+      while (sc.hasNextLine()) {
+        val line = sc.nextLine()
+        if (!line.startsWith("    ]") && !line.startsWith("}")) {
+          scoreboardFormatBefore += line + "\n"
+        } else {
+          scoreboardFormatAfter += line + "\n"
+        }
+      }
+      scoreboardFormatBefore = scoreboardFormatBefore.dropLast(1)
+      scoreboardFormatAfter = scoreboardFormatAfter.dropLast(1)
+      scoreboardFormatBefore += ",\n"
+
+      val scoreboardFormatNow = makeJsonScoreFormat(formattedDate, score, asteroidsDestroyed) + "\n"
+
+      scoreboardFile.writeText(scoreboardFormatBefore + scoreboardFormatNow + scoreboardFormatAfter)
     }
-    if (!isLeaderboardCreated) {
-      leaderboardFile.writeText("Test leaderboard\n")
+  } 
+
+  fun setupLeaderboard(isNewFile: Boolean) {
+    leaderboardFormatBefore += "{\n    \"games\": [\n"
+    leaderboardFormatAfter += "\n    ]\n}"
+
+    if (isNewFile) {
+      leaderboardDate1 = formattedDate
+      leaderboardDate2 = formattedDate
+      leaderboardDate3 = formattedDate
+      val leaderboardFormatNow1: String = makeJsonScoreFormat(formattedDate, 0, 0)
+      val leaderboardFormatNow2: String = makeJsonScoreFormat(formattedDate, 0, 0)
+      val leaderboardFormatNow3: String = makeJsonScoreFormat(formattedDate, 0, 0)
+
+      leaderboardFile.writeText(leaderboardFormatBefore + leaderboardFormatNow1 + ",\n" + leaderboardFormatNow2 + ",\n" + leaderboardFormatNow3 + leaderboardFormatAfter)
+    } else {
+      val sc = Scanner(leaderboardFile)
+
+      while (sc.hasNextLine()) {
+        val line = sc.nextLine()
+        if (line.startsWith("            \"date_time\": ")) {
+          leaderboardDate1 = leaderboardDate2
+          leaderboardDate2 = leaderboardDate3
+          leaderboardDate3 = line.removePrefix("            \"date_time\": \"").dropLast(2)
+        } else if (line.startsWith("            \"score\": ")) {
+          leaderboardScore1 = leaderboardScore2
+          leaderboardScore2 = leaderboardScore3
+          leaderboardScore3 = line.removePrefix("            \"score\": ").dropLast(1).toInt()
+        } else if (line.startsWith("            \"asteroids_destroyed\": ")) {
+          leaderboardDestroyed1 = leaderboardDestroyed2
+          leaderboardDestroyed2 = leaderboardDestroyed3
+          leaderboardDestroyed3 = line.removePrefix("            \"asteroids_destroyed\": ").toInt()
+        }
+      }
     }
+  }
+
+  fun addScore(mass: Double, velocity: Double) {
+    val doubleScore: Double = 200 * mass + 300 * velocity
+    score += doubleScore.roundToInt()
+    asteroidsDestroyed += 1
+    updateScoreboard()
+    updateLeaderboard()
+  }
+
+  fun updateScoreboard() {
+    val scoreboardFormatNow = makeJsonScoreFormat(formattedDate, score, asteroidsDestroyed) + "\n"
+    scoreboardFile.writeText(scoreboardFormatBefore + scoreboardFormatNow + scoreboardFormatAfter)
+  }
+
+  fun updateLeaderboard() {
+    if (currentLeaderboardPosition == 4 && score > leaderboardScore3) {
+      leaderboardDate3 = formattedDate
+      leaderboardScore3 = score
+      leaderboardDestroyed3 = asteroidsDestroyed
+
+      currentLeaderboardPosition = 3
+    }
+    if (currentLeaderboardPosition == 3) {
+      leaderboardDate3 = formattedDate
+      leaderboardScore3 = score
+      leaderboardDestroyed3 = asteroidsDestroyed
+
+      if (score > leaderboardScore2) {
+        leaderboardDate3 = leaderboardDate2
+        leaderboardScore3 = leaderboardScore2
+        leaderboardDestroyed3 = leaderboardDestroyed2
+
+        leaderboardDate2 = formattedDate
+        leaderboardScore2 = score
+        leaderboardDestroyed2 = asteroidsDestroyed
+
+        currentLeaderboardPosition = 2
+      }
+    }
+    if (currentLeaderboardPosition == 2) {
+      leaderboardDate2 = formattedDate
+      leaderboardScore2 = score
+      leaderboardDestroyed2 = asteroidsDestroyed
+
+      if (score > leaderboardScore1) {
+        leaderboardDate2 = leaderboardDate1
+        leaderboardScore2 = leaderboardScore1
+        leaderboardDestroyed2 = leaderboardDestroyed1
+
+        leaderboardDate1 = formattedDate
+        leaderboardScore1 = score
+        leaderboardDestroyed1 = asteroidsDestroyed
+
+        currentLeaderboardPosition = 1
+      }
+    }
+    if (currentLeaderboardPosition == 1) {
+      leaderboardDate1 = formattedDate
+      leaderboardScore1 = score
+      leaderboardDestroyed1 = asteroidsDestroyed
+    }
+
+    val leaderboardFormatNow1 = makeJsonScoreFormat(leaderboardDate1, leaderboardScore1, leaderboardDestroyed1) + ",\n"
+    val leaderboardFormatNow2 = makeJsonScoreFormat(leaderboardDate2, leaderboardScore2, leaderboardDestroyed2) + ",\n"
+    val leaderboardFormatNow3 = makeJsonScoreFormat(leaderboardDate3, leaderboardScore3, leaderboardDestroyed3)
+    leaderboardFile.writeText(leaderboardFormatBefore + leaderboardFormatNow1 + leaderboardFormatNow2 + leaderboardFormatNow3 + leaderboardFormatAfter)
   }
 
   fun tick() {
@@ -113,9 +267,7 @@ class GameEngine(
         if (first.symbol == '^' && second.symbol == '.') {
           val asteroid: Asteroid = second as Asteroid
           this.field.explodeAsteroid(asteroid)
-
-          val doubleScore: Double = 200 * asteroid.mass + 300 * asteroid.velocity.magnitude
-          score += doubleScore.roundToInt()
+          addScore(asteroid.mass, asteroid.velocity.magnitude)
         }
       }
     }
@@ -144,6 +296,13 @@ class GameEngine(
 
   fun renderSpaceField() {
     this.visualizer.renderSpaceField(this.field)
+  }
+
+  private fun makeJsonScoreFormat(displayDateTime: String, displayScore: Int, displayDestroyed: Int): String {
+    var scoreFormat: String = "        {\n"
+    scoreFormat += "            \"date_time\": \"" + displayDateTime + "\",\n            \"score\": "
+    scoreFormat += displayScore.toString() + ",\n            \"asteroids_destroyed\": " + displayDestroyed.toString() + "\n        }"
+    return scoreFormat
   }
 }
 
